@@ -16,3 +16,4 @@ export { default as RichTextEditor } from "./RichTextEditor";
 export { default as RichTextRenderer } from "./RichTextRenderer";
 export { StatBadge } from "./StatBadge";
 export { StatusDot } from "./StatusDot";
+export { PageTransition } from "./PageTransition";

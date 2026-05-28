@@ -14,10 +14,11 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useWalletStore } from "@/lib/store/walletStore";
 import { WalletInfo } from "@/components/wallet/WalletInfo";
 import { WalletConnect } from "@/components/wallet/WalletConnect";
-import { GrantCard } from "@/components/grants/GrantCard";
+import { GrantCard, grantListVariants, grantCardVariants } from "@/components/grants/GrantCard";
 import type { Grant } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ function DashboardContent() {
   const address = useWalletStore((s) => s.address);
   const network = useWalletStore((s) => s.network);
 
+  const prefersReduced = useReducedMotion();
   const [balance, setBalance] = useState<bigint | null>(null);
   const [reputation, setReputation] = useState<number | null>(null);
   const [grants, setGrants] = useState<Grant[]>([]);
@@ -170,53 +172,87 @@ function DashboardContent() {
         ))}
       </div>
 
-      {/* Tab content */}
-      <div role="tabpanel" aria-label={TABS.find((t) => t.id === activeTab)?.label}>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="h-28 rounded-[4px] border border-border-color animate-pulse bg-surface/40"
-              />
-            ))}
-          </div>
-        ) : grants.length === 0 ? (
-          <div className="rounded-[4px] border border-border-color bg-surface/60 p-10 text-center space-y-3">
-            <p className="text-text-muted text-sm">
-              {activeTab === "my-grants" && "You haven't created any grants yet."}
-              {activeTab === "funding" && "You haven't funded any grants yet."}
-              {activeTab === "reviewing" && "You have no grants assigned for review."}
-            </p>
-            {activeTab === "my-grants" && (
-              <Link
-                href="/grants/new"
-                className="inline-block text-sm text-accent-primary hover:underline"
+      {/* Tab content — AnimatePresence cross-fade on tab switch */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          role="tabpanel"
+          aria-label={TABS.find((t) => t.id === activeTab)?.label}
+          initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+          animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReduced ? 0.1 : 0.2, ease: "easeOut" as const }}
+        >
+          <AnimatePresence mode="wait">
+            {loading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-3"
               >
-                Create your first grant →
-              </Link>
+                {[1, 2, 3].map((n) => (
+                  <div
+                    key={n}
+                    className="h-28 rounded-[4px] border border-border-color animate-pulse bg-surface/40"
+                  />
+                ))}
+              </motion.div>
+            ) : grants.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="rounded-[4px] border border-border-color bg-surface/60 p-10 text-center space-y-3"
+              >
+                <p className="text-text-muted text-sm">
+                  {activeTab === "my-grants" && "You haven't created any grants yet."}
+                  {activeTab === "funding" && "You haven't funded any grants yet."}
+                  {activeTab === "reviewing" && "You have no grants assigned for review."}
+                </p>
+                {activeTab === "my-grants" && (
+                  <Link
+                    href="/grants/new"
+                    className="inline-block text-sm text-accent-primary hover:underline"
+                  >
+                    Create your first grant →
+                  </Link>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="list"
+                className="space-y-3"
+                variants={grantListVariants}
+                initial={prefersReduced ? {} : "hidden"}
+                animate="visible"
+              >
+                {grants.map((grant) => (
+                  <motion.div
+                    key={grant.id}
+                    variants={prefersReduced ? {} : grantCardVariants}
+                  >
+                    <GrantCard
+                      grant={{
+                        id: Number(grant.id),
+                        title: grant.title,
+                        status: grant.status,
+                        funded: grant.funded,
+                        budget: grant.budget,
+                        deadline: grant.deadline,
+                        token: grant.token,
+                        owner: grant.owner,
+                      }}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
             )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {grants.map((grant) => (
-              <GrantCard
-                key={grant.id}
-                grant={{
-                  id: Number(grant.id),
-                  title: grant.title,
-                  status: grant.status,
-                  funded: grant.funded,
-                  budget: grant.budget,
-                  deadline: grant.deadline,
-                  token: grant.token,
-                  owner: grant.owner,
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          </AnimatePresence>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

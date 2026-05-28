@@ -33,7 +33,7 @@ describe('GrantCard', () => {
   it('calls onClick when clicked', () => {
     const handler = vi.fn();
     render(<GrantCard grant={GRANT} onClick={handler} />);
-    const card = screen.getByText('Test Grant Alpha').closest('div[class]')!;
+    const card = screen.getByText('Test Grant Alpha').closest('div[class]') as HTMLElement;
     card.click();
     expect(handler).toHaveBeenCalledTimes(1);
   });
