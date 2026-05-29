@@ -13,9 +13,15 @@ interface UseReputationResult {
   refetch: () => Promise<void>;
 }
 
+interface ReputationData {
+  score: number | null;
+  grantsCompleted: number;
+  totalEarned: bigint;
+}
+
 const cache = new Map<
   string,
-  { data: UseReputationResult; timestamp: number }
+  { data: ReputationData; timestamp: number }
 >();
 const CACHE_TTL = 60_000;
 
@@ -41,6 +47,7 @@ export function useReputation(address: string | null): UseReputationResult {
       setScore(cached.data.score);
       setGrantsCompleted(cached.data.grantsCompleted);
       setTotalEarned(cached.data.totalEarned);
+      setIsLoading(false);
       return;
     }
 
@@ -74,16 +81,14 @@ export function useReputation(address: string | null): UseReputationResult {
         throw new Error("Failed to fetch reputation from all sources");
       }
 
-      const result: UseReputationResult = {
-        score: finalScore,
-        grantsCompleted: finalGrants,
-        totalEarned: finalEarned,
-        isLoading: false,
-        error: null,
-        refetch: fetch,
-      };
-
-      cache.set(address, { data: result, timestamp: Date.now() });
+      cache.set(address, {
+        data: {
+          score: finalScore,
+          grantsCompleted: finalGrants,
+          totalEarned: finalEarned,
+        },
+        timestamp: Date.now(),
+      });
 
       setScore(finalScore);
       setGrantsCompleted(finalGrants);
